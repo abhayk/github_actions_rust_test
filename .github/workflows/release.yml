@@ -63,7 +63,7 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          staging = "${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.app_version }}-${{ matrix.build }}"
+          staging="${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.binary_version }}-${{ matrix.build }}"
           mkdir -p "$staging"
           if [ "${{ matrix.os }}" = "windows-latest"]; then
             7z a "$staging.zip" target/release/${{ env.BINARY_NAME }}.exe
