@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Get the release version from the tag
         shell: bash
-        if: env.BINARY_VERSION = ''
+        if: env.BINARY_VERSION == ''
         run: |
           echo "BINARY_VERSION=${GITHUB_REF#refs/tags}" >> $GITHUB_ENV
       - name: Create Github release
