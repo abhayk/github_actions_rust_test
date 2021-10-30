@@ -10,50 +10,68 @@ jobs:
     runs-on: ubuntu-latest
     outputs: 
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      binary_version: ${{ env.BINARY_VERSION }}
     steps:
+      - name: Get the release version from the tag
+        shell: bash
+        if: env.BINARY_VERSION = ''
+        run: |
+          echo "BINARY_VERSION=${GITHUB_REF#refs/tags}" >> $GITHUB_ENV
       - name: Create Github release
         id: create-release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: ${{ env.BINARY_VERSION }}
+          release_name: ${{ env.BINARY_VERSION   }}
 
   build-release:
     name: build-release
     needs: ['create-release']
     runs-on: ${{ matrix.os }}
     env:
-      APP_NAME: hello_world
+      BINARY_NAME: hello_world
     strategy:
       matrix:
-        build: [linux, macos, win-msvc, win-gnu]
+        build: [linux, macos, windows]
         include:
           - build: linux
             os: ubuntu-latest
-            binary: ${{ env.APP_NAME }}
           - build: macos
             os: macos-latest
-            binary: ${{ env.APP_NAME }}
-          - build: win-msvc
+          - build: windows
             os: windows-latest
-            binary: ${{ env.APP_NAME }}.exe
-          - build: win-gnu
-            os: windows-latest
-            binary: ${{ env.APP_NAME }}.exe
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
 
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Build release binary
         run: cargo build --verbose --release
 
       - name: Strip release binary (linux and macos)
         if: matrix.build == 'linux' || matrix.build == 'macos'
-        run: strip "target/release/${{ env.APP_NAME }}"
+        run: strip "target/release/${{ env.BINARY_NAME }}"
+
+      - name: Build archive
+        shell: bash
+        run: |
+          staging = "${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.app_version }}-${{ matrix.build }}"
+          mkdir -p "$staging"
+          if [ "${{ matrix.os }}" = "windows-latest"]; then
+            7z a "$staging.zip" target/release/${{ env.BINARY_NAME }}.exe
+            echo "ASSET=$staging.zip" >> $GITHUB_ENV
+          else
+            tar czf "$staging.tar.gz" target/release/${{ env.BINARY_NAME }}
+            echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          fi
 
       - name: Upload release
         uses: actions/upoad-release-asset@v1.0.1
@@ -61,7 +79,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_name: ${{ env.APP_NAME}}-${{ matrix.os }}
-          asset_path: "target/release/${{ matrix.binary }}"
+          asset_name: ${{ env.ASSET }}
+          asset_path: ${{ env.ASSET }}
           asset_content_type: application/octet-stream
 
