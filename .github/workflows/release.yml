@@ -9,7 +9,7 @@ jobs:
     name: create-release
     runs-on: ubuntu-latest
     outputs: 
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
       binary_version: ${{ env.BINARY_VERSION }}
     steps:
       - name: Get the release version from the tag
