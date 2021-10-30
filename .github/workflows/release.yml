@@ -65,11 +65,13 @@ jobs:
         run: |
           staging="${{ env.BINARY_NAME }}-${{ needs.create-release.outputs.binary_version }}-${{ matrix.build }}"
           mkdir -p "$staging"
-          if [ "${{ matrix.os }}" = "windows-latest"]; then
-            7z a "$staging.zip" target/release/${{ env.BINARY_NAME }}.exe
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp "target/release/${{ env.BINARY_NAME }}.exe" "$staging/"
+            7z a "$staging.zip" "$staging"
             echo "ASSET=$staging.zip" >> $GITHUB_ENV
           else
-            tar czf "$staging.tar.gz" target/release/${{ env.BINARY_NAME }}
+            cp "target/release/${{ env.BINARY_NAME }}" "$staging/"
+            tar czf "$staging.tar.gz" "target/release/${{ env.BINARY_NAME }}"
             echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
           fi
 
